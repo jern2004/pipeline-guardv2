@@ -9,7 +9,7 @@ Phase 1 of 10, in progress: the FastAPI app, running locally against SQLite.
 ## What exists now
 
 - FastAPI app with a `/healthz` health check
-- `POST /incidents` to create an incident, with request validation (Pydantic)
+- CRUD routes for incidents: create, list, get, update and delete, with request validation (Pydantic)
 - SQLAlchemy model for incidents, stored in SQLite locally
 - Interactive API docs at `/docs`
 
