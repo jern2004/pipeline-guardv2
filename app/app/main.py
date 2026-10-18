@@ -1,5 +1,6 @@
 from collections.abc import Iterator
 from datetime import UTC, datetime
+from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy import select
@@ -22,6 +23,9 @@ def get_db() -> Iterator[Session]:
         db.close()
 
 
+DbSession = Annotated[Session, Depends(get_db)]
+
+
 def get_incident_or_404(db: Session, incident_id: int) -> Incident:
     incident = db.get(Incident, incident_id)
     if incident is None:
@@ -35,7 +39,7 @@ def healthz() -> dict[str, str]:
 
 
 @app.post("/incidents", response_model=IncidentRead, status_code=201)
-def create_incident(payload: IncidentCreate, db: Session = Depends(get_db)) -> Incident:
+def create_incident(payload: IncidentCreate, db: DbSession) -> Incident:
     incident = Incident(**payload.model_dump())
     db.add(incident)
     db.commit()
@@ -44,18 +48,18 @@ def create_incident(payload: IncidentCreate, db: Session = Depends(get_db)) -> I
 
 
 @app.get("/incidents", response_model=list[IncidentRead])
-def list_incidents(db: Session = Depends(get_db)) -> list[Incident]:
+def list_incidents(db: DbSession) -> list[Incident]:
     return list(db.scalars(select(Incident).order_by(Incident.id)).all())
 
 
 @app.get("/incidents/{incident_id}", response_model=IncidentRead)
-def get_incident(incident_id: int, db: Session = Depends(get_db)) -> Incident:
+def get_incident(incident_id: int, db: DbSession) -> Incident:
     return get_incident_or_404(db, incident_id)
 
 
 @app.patch("/incidents/{incident_id}", response_model=IncidentRead)
 def update_incident(
-    incident_id: int, payload: IncidentUpdate, db: Session = Depends(get_db)
+    incident_id: int, payload: IncidentUpdate, db: DbSession
 ) -> Incident:
     incident = get_incident_or_404(db, incident_id)
     changes = payload.model_dump(exclude_none=True)
@@ -74,7 +78,7 @@ def update_incident(
 
 
 @app.delete("/incidents/{incident_id}", status_code=204)
-def delete_incident(incident_id: int, db: Session = Depends(get_db)) -> None:
+def delete_incident(incident_id: int, db: DbSession) -> None:
     incident = get_incident_or_404(db, incident_id)
     db.delete(incident)
     db.commit()
